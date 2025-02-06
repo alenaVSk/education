@@ -1,0 +1,20 @@
+MODULE Main;
+
+CLASS Reception 'Приходы';
+number 'Номер' = DATA  STRING[10] (Reception);
+date 'Дата' = DATA DATE (Reception);
+name 'Наименование' = DATA STRING[50] (Reception);
+quantity 'Количество' = DATA NUMERIC[10,3] (Reception);
+price 'Цена' = DATA NUMERIC[10,2] (Reception);
+
+FORM viewReseption 'Приходы' 
+    OBJECTS r = Reception
+    PROPERTIES (r) number, date, name, quantity, price
+    PROPERTIES (r) NEW , DELETE
+;    
+
+NAVIGATOR {
+        NEW FOLDER move 'Движение' WINDOW toolbar FIRST {
+            NEW FORM viewReseption;
+        }
+}
