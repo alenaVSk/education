@@ -1,20 +1,145 @@
 MODULE Main;
 
-CLASS Reception 'Приходы';
-number 'Номер' = DATA  STRING[10] (Reception);
-date 'Дата' = DATA DATE (Reception);
-name 'Наименование' = DATA STRING[50] (Reception);
-quantity 'Количество' = DATA NUMERIC[10,3] (Reception);
-price 'Цена' = DATA NUMERIC[10,2] (Reception);
+REQUIRE Time, Authentication;
 
-FORM viewReseption 'Приходы' 
-    OBJECTS r = Reception
+CLASS Reception 'Приходы';
+
+number 'Номер' = DATA STRING[10] (Reception) NONULL;
+date 'Дата' = DATA DATE (Reception) NONULL;
+name 'Наименование' = DATA STRING[50] (Reception) NONULL;
+quantity 'Количество' = DATA NUMERIC[10,3] (Reception) NONULL;
+price 'Цена' = DATA NUMERIC[10,2] (Reception) NONULL;
+userDate 'Дата ввода' = DATA DATE (Reception);
+userName 'Пользователь' = DATA STRING[50] (Reception);
+
+// контроль данных
+unique = GROUP AGGR Reception o BY number(o), date(o), name(o);
+CONSTRAINT quantity(Reception o) > 1000 OR quantity(o) <= 0 MESSAGE 'Недопустимое количество';
+WHEN SET(Reception o IS Reception) AND NOT userDate(o) DO userDate(o) <- currentDate();
+WHEN SET(Reception o IS Reception) AND NOT userName(o) DO userName(o) <- STRING[50](currentUserName());
+
+
+FORM editReception 'Приход'  
+    OBJECTS r = Reception PANEL 
     PROPERTIES (r) number, date, name, quantity, price
-    PROPERTIES (r) NEW , DELETE
-;    
+    EDIT Reception OBJECT r
+;
+
+FORM viewReception 'Приходы'
+    OBJECTS r = Reception 
+    PROPERTIES (r) READONLY number, date, name, quantity, price, userName, userDate
+    PROPERTIES (r) NEWSESSION NEW, EDIT, DELETE
+;
+NAVIGATOR {
+    NEW FOLDER move 'Движение' WINDOW toolbar FIRST { 
+        NEW FORM viewReception; 
+    }
+}
+
+DESIGN editReception {
+    OBJECTS {
+        NEW cntDoc {
+            horizontal = TRUE; 
+            caption = 'Накладная';
+            height = 100;
+            MOVE PROPERTY (number(r));
+            MOVE PROPERTY (date(r));
+        }
+        NEW cntRow {
+            horizontal = FALSE ;
+            caption = 'Строки накладной';
+            MOVE PROPERTY (name(r));
+            MOVE PROPERTY (quantity(r));
+            MOVE PROPERTY (price(r));
+        }
+    }
+}
+
+CLASS Organization 'Организации';
+
+name 'Организация' = DATA STRING[50] (Organization) NONULL ;
+
+FORM viewOrgaization 'Организации'
+    OBJECTS o = Organization
+    PROPERTIES (o) READONLY name
+    PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
+;
+
+FORM editOrgaization 'Организация'
+    OBJECTS o = Organization PANEL
+    PROPERTIES (o) name
+    EDIT Organization OBJECT o
+;
+
+// Эта форма будет выводится, как справочник
+FORM listOrgaization 'Организации'
+    OBJECTS o = Organization
+    PROPERTIES (o) READONLY name
+    LIST Organization OBJECT o
+;
 
 NAVIGATOR {
-        NEW FOLDER move 'Движение' WINDOW toolbar FIRST {
-            NEW FORM viewReseption;
+    move {
+        NEW FOLDER directory 'Справочники' {
+            NEW FORM viewOrgaization;
         }
+    }
 }
+
+// новое свойство - ссылка на организацию
+organization = DATA Organization (Reception);
+
+organizationName 'Поставщик' (Reception o) = name(organization(o));
+
+// вставили в нужную позицию отображения между датой накладной и наименованием товара
+EXTEND FORM viewReception
+    PROPERTIES (r) READONLY organizationName AFTER date(r)
+;
+
+EXTEND FORM editReception
+    PROPERTIES (r) organizationName
+;
+
+DESIGN editReception {
+    OBJECTS {
+        NEW cntOrg AFTER cntDoc {
+            horizontal = TRUE;
+            caption = 'Поставщик';
+            height = 100;
+            MOVE PROPERTY (organizationName(r)) { caption = 'Фирма'; }
+        }
+    }
+}
+
+// доработки для использования статических объектов
+CLASS OrganizationType 'Тип организации' {
+    supplier 'Поставщик', customer 'Покупатель'
+}
+
+organizationType 'ID' = DATA OrganizationType (Organization) NONULL;
+organizationTypeName 'Тип организации' (Organization o) = staticCaption(organizationType(o));
+
+EXTEND FORM viewOrgaization
+    PROPERTIES (o) READONLY organizationTypeName
+;
+
+EXTEND FORM editOrgaization
+    PROPERTIES (o) organizationTypeName
+;
+
+CONSTRAINT SETCHANGED(organization(Reception o)) AND
+    NOT organizationType(organization(o)) = OrganizationType.supplier
+    CHECKED BY organization[Reception]
+    MESSAGE 'Для приходной накладной организация должна быть поставщиком';
+
+FORM static 'Статические объекты'
+    OBJECTS o = OrganizationType
+    PROPERTIES (o) staticName, staticCaption
+    PROPERTIES (o) NEW , DELETE
+;
+NAVIGATOR {
+    directory {
+        NEW FORM static;
+    }
+}
+
