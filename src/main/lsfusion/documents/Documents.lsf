@@ -1,0 +1,63 @@
+MODULE Documents;
+
+REQUIRE Time, Authentication, Organization;
+
+CLASS ABSTRACT Document 'Документ';
+
+number 'Номер' = DATA STRING[10] (Document) NONULL;
+date 'Дата' = DATA DATE (Document) NONULL;
+quantity 'Количество' = DATA NUMERIC[10,3] (Document) NONULL;
+userDate 'Дата ввода' = DATA DATE (Document);
+userName 'Пользователь' = DATA STRING[50] (Document);
+
+// контроль данных
+CONSTRAINT quantity(Document o) > 1000 OR quantity(o) <= 0 MESSAGE 'Недопустимое количество';
+WHEN SET(Document o IS Document) AND NOT userDate(o) DO userDate(o) <- currentDate(); // автозаполнение
+WHEN SET(Document o IS Document) AND NOT userName(o) DO userName(o) <- STRING[50](name(currentUser()));
+
+META forms(object, title1, title2, title3, title4)
+    // форма редактирования
+    FORM edit##object title1
+        OBJECTS o = object PANEL
+        PROPERTIES (o) number, date, organizationName, name, quantity, price
+        EDIT object OBJECT o
+    ;
+    // форма отображения
+    FORM view##object title2
+        OBJECTS o = object
+        PROPERTIES (o) READONLY number, date, organizationName, name, quantity, price, userName, userDate
+        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
+        ORDERS date(o), number(o)
+    ;
+    // дизайн формы    
+    DESIGN edit##object {
+        OBJECTS {
+            NEW cntDoc {
+                horizontal = TRUE; // распределяем элементы слева-направо-сверху-вниз
+                caption = 'Накладная';
+                height = 100;
+                MOVE PROPERTY (number(o));
+                MOVE PROPERTY (date(o));
+            }
+            NEW cntOrg {
+                horizontal = TRUE;
+                caption = title3;
+                height = 100;
+                MOVE PROPERTY (organizationName(o)) { caption = title4; }
+            }
+            NEW cntRow {
+                horizontal = FALSE ;
+                caption = 'Строки накладной';
+                MOVE PROPERTY (name(o));
+                MOVE PROPERTY (quantity(o));
+                MOVE PROPERTY (price(o));
+            }
+        }
+    }
+    NAVIGATOR {
+        documents {
+            NEW FORM view##object;
+        }
+    }
+END    
+

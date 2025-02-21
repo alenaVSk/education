@@ -1,39 +1,43 @@
-MODULE Reception;
+MODULE Expenses;
 // 1. Необходимые для работы модули
-REQUIRE Documents, AppMenu, Organization;
+REQUIRE Documents, AppMenu, Organization, Reception, Utils;
 // 2. Задаем общее пространство имен для всех документов
 NAMESPACE Documents;
 // 3. Наследуем класс приходы от класса Document
-CLASS Reception 'Приходы':Document;
+CLASS Expenses 'Расходы':Document;
 // 4. Добавляем свойства, которых нет в базовом классе
-name 'Наименование' = DATA STRING[100] (Reception) NONULL;
-price 'Цена' = DATA NUMERIC[10,2] (Reception) NONULL;
+// так как товар и цена берутся из прихода, то нужна композиция
+reception 'ID' = DATA Reception (Expenses) NONULL ;
+name 'Наименование' (Expenses o) = name(reception(o));
+price 'Цена' (Expenses o) = round(1.1 * price(reception(o)),2); // 1.1 - оптовая надбавка
 // 4. Композиция
-supplier = DATA Organization (Reception);
-organizationName 'Поставщик' (Reception o) = name(supplier(o));
+customer = DATA Organization (Expenses);
+organizationName 'Покупатель' (Expenses o) = name(customer(o));
 // 5. Контроль данных
-unique = GROUP AGGR Reception o BY number(o), date(o), name(o);
-CONSTRAINT SETCHANGED(supplier(Reception o)) AND
-    NOT organizationType(supplier(o)) = OrganizationType.supplier
-    CHECKED BY supplier[Reception]
-    MESSAGE 'Для приходной накладной организация должна быть поставщиком';
+allExpenses (Reception r) = GROUP SUM quantity(Expenses e) BY reception(e) MATERIALIZED;
+balance 'Остаток' (Reception r) = quantity(r) (-) allExpenses(r);
+CONSTRAINT balance(reception(Expenses o)) < 0 MESSAGE 'Расход превышает остаток';
+CONSTRAINT SETCHANGED(customer(Expenses o)) AND NOT organizationType(customer(o)) =
+    OrganizationType.customer
+    CHECKED BY customer[Expenses] MESSAGE 'Для расходной накладной организация должна быть
+покупателем';
 
-@forms(Reception, 'Приход', 'Приходы', 'Поставщик', 'Фирма'){
+@forms(Expenses, 'Расход', 'Расходы', 'Покупатель', 'Магазин'){
     // форма редактирования
-    FORM editReception 'Приход'
-        OBJECTS o = Reception PANEL
+    FORM editExpenses 'Расход'
+        OBJECTS o = Expenses PANEL
         PROPERTIES (o) number, date, organizationName, name, quantity, price
-        EDIT Reception OBJECT o
+        EDIT Expenses OBJECT o
     ;
     // форма отображения
-    FORM viewReception 'Приходы'
-        OBJECTS o = Reception
+    FORM viewExpenses 'Расходы'
+        OBJECTS o = Expenses
         PROPERTIES (o) READONLY number, date, organizationName, name, quantity, price, userName, userDate
         PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
         ORDERS date(o), number(o)
     ;
     // дизайн формы    
-    DESIGN editReception {
+    DESIGN editExpenses {
         OBJECTS {
             NEW cntDoc {
                 horizontal = TRUE; // распределяем элементы слева-направо-сверху-вниз
@@ -44,9 +48,9 @@ CONSTRAINT SETCHANGED(supplier(Reception o)) AND
             }
             NEW cntOrg {
                 horizontal = TRUE;
-                caption = 'Поставщик';
+                caption = 'Покупатель';
                 height = 100;
-                MOVE PROPERTY (organizationName(o)) { caption = 'Фирма'; }
+                MOVE PROPERTY (organizationName(o)) { caption = 'Магазин'; }
             }
             NEW cntRow {
                 horizontal = FALSE ;
@@ -59,7 +63,7 @@ CONSTRAINT SETCHANGED(supplier(Reception o)) AND
     }
     NAVIGATOR {
         documents {
-            NEW FORM viewReception;
+            NEW FORM viewExpenses;
         }
     }
 };
