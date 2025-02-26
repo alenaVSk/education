@@ -3,68 +3,62 @@ MODULE Expenses;
 REQUIRE Documents, AppMenu, Organization, Reception, Utils;
 // 2. Задаем общее пространство имен для всех документов
 NAMESPACE Documents;
-// 3. Наследуем класс приходы от класса Document
-CLASS Expenses 'Расходы':Document;
+// 3. Наследуем класс заголовка расхода от класса Header
+CLASS HeaderExpenses 'Расходы':Header;
+// 3. Наследуем класс строки расхода от класса Row
+CLASS Expenses 'Строки расходов':Row;
 // 4. Добавляем свойства, которых нет в базовом классе
 // так как товар и цена берутся из прихода, то нужна композиция
-reception 'ID' = DATA Reception (Expenses) NONULL ;
+reception 'ID' = DATA Reception (Expenses) NONULL;
 name 'Наименование' (Expenses o) = name(reception(o));
-price 'Цена' (Expenses o) = round(1.1 * price(reception(o)),2); // 1.1 - оптовая надбавка
+price 'Цена' (Expenses o) = round(1.1 * price(reception(o)), 2); // 1.1 - оптовая надбавка
 // 4. Композиция
-customer = DATA Organization (Expenses);
-organizationName 'Покупатель' (Expenses o) = name(customer(o));
-// 5. Контроль данных
+customer = DATA Organization (HeaderExpenses);
+organizationName 'Покупатель' (HeaderExpenses o) = name(customer(o));
+// 5. Контроль данных и вычисления остатка
 allExpenses (Reception r) = GROUP SUM quantity(Expenses e) BY reception(e) MATERIALIZED;
 balance 'Остаток' (Reception r) = quantity(r) (-) allExpenses(r);
 CONSTRAINT balance(reception(Expenses o)) < 0 MESSAGE 'Расход превышает остаток';
-CONSTRAINT SETCHANGED(customer(Expenses o)) AND NOT organizationType(customer(o)) =
-    OrganizationType.customer
-    CHECKED BY customer[Expenses] MESSAGE 'Для расходной накладной организация должна быть
-покупателем';
-
-@forms(Expenses, 'Расход', 'Расходы', 'Покупатель', 'Магазин'){
+CONSTRAINT SETCHANGED(customer(HeaderExpenses o)) AND
+    NOT organizationType(customer(o)) = OrganizationType.customer
+    CHECKED BY customer[HeaderExpenses]
+    MESSAGE 'Для расходной накладной организация должна быть покупателем';
+// 6. Формы редактирования и отображения, дизайн, 7. меню
+@forms(Expenses, 'Расход', 'Расходы', 'Покупатель'){
     // форма редактирования
     FORM editExpenses 'Расход'
-        OBJECTS o = Expenses PANEL
-        PROPERTIES (o) number, date, organizationName, name, quantity, price
-        EDIT Expenses OBJECT o
+        OBJECTS h = HeaderExpenses PANEL // редактирование заголовка
+        PROPERTIES (h) number, date, organizationName
+        OBJECTS r = Expenses // редактирование строк
+        PROPERTIES (r) name, quantity, price
+        PROPERTIES (r) NEW, DELETE
+        EDIT HeaderExpenses OBJECT h
+        FILTERS header(r) = h
     ;
+    // подправляем заголовок свойства для разных форм редактирования
+    DESIGN editExpenses { PROPERTY (organizationName(h)) {caption = 'Покупатель';} }
     // форма отображения
     FORM viewExpenses 'Расходы'
-        OBJECTS o = Expenses
-        PROPERTIES (o) READONLY number, date, organizationName, name, quantity, price, userName, userDate
-        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
-        ORDERS date(o), number(o)
+        OBJECTS h = HeaderExpenses LAST
+        PROPERTIES (h) READONLY number, date, organizationName, userName, userDate
+        PROPERTIES (h) NEWSESSION NEW, EDIT, DELETE
+        OBJECTS r = Expenses
+        PROPERTIES (r) READONLY name, quantity, price
+        FILTERS header(r) = h
+        ORDERS date(h), number(h)
     ;
-    // дизайн формы    
-    DESIGN editExpenses {
-        OBJECTS {
-            NEW cntDoc {
-                horizontal = TRUE; // распределяем элементы слева-направо-сверху-вниз
-                caption = 'Накладная';
-                height = 100;
-                MOVE PROPERTY (number(o));
-                MOVE PROPERTY (date(o));
-            }
-            NEW cntOrg {
-                horizontal = TRUE;
-                caption = 'Покупатель';
-                height = 100;
-                MOVE PROPERTY (organizationName(o)) { caption = 'Магазин'; }
-            }
-            NEW cntRow {
-                horizontal = FALSE ;
-                caption = 'Строки накладной';
-                MOVE PROPERTY (name(o));
-                MOVE PROPERTY (quantity(o));
-                MOVE PROPERTY (price(o));
-            }
-        }
-    }
+    // панель кнопок редактирования шапки передвигаем в панель редактирования строк
+    DESIGN viewExpenses { TOOLBARRIGHT (r) { MOVE TOOLBARRIGHT (h); }}
     NAVIGATOR {
         documents {
             NEW FORM viewExpenses;
         }
     }
 };
-
+// 6. форма выбора остатков
+FORM listReception 'Остатки'
+    OBJECTS r = Reception
+    PROPERTIES (r) READONLY name, price, quantity, balance
+    LIST Reception OBJECT r
+    FILTERS balance(r)
+;

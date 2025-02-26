@@ -3,64 +3,50 @@ MODULE Reception;
 REQUIRE Documents, AppMenu, Organization;
 // 2. Задаем общее пространство имен для всех документов
 NAMESPACE Documents;
-// 3. Наследуем класс приходы от класса Document
-CLASS Reception 'Приходы':Document;
+// 3. Наследуем класс заголовка прихода от класса Header
+CLASS HeaderReception 'Приходы':Header;
+// 3. Наследуем класс строки прихода от класса Row
+CLASS Reception 'Строки приходов':Row;
 // 4. Добавляем свойства, которых нет в базовом классе
 name 'Наименование' = DATA STRING[100] (Reception) NONULL;
 price 'Цена' = DATA NUMERIC[10,2] (Reception) NONULL;
 // 4. Композиция
-supplier = DATA Organization (Reception);
-organizationName 'Поставщик' (Reception o) = name(supplier(o));
+supplier = DATA Organization (HeaderReception);
+organizationName 'Поставщик' (HeaderReception o) = name(supplier(o));
 // 5. Контроль данных
-unique = GROUP AGGR Reception o BY number(o), date(o), name(o);
-CONSTRAINT SETCHANGED(supplier(Reception o)) AND
+CONSTRAINT SETCHANGED(supplier(HeaderReception o)) AND
     NOT organizationType(supplier(o)) = OrganizationType.supplier
-    CHECKED BY supplier[Reception]
+    CHECKED BY supplier[HeaderReception]
     MESSAGE 'Для приходной накладной организация должна быть поставщиком';
-
-@forms(Reception, 'Приход', 'Приходы', 'Поставщик', 'Фирма'){
+// 6. Формы редактирования и отображения, дизайн, 7. меню
+@forms(Reception, 'Приход', 'Приходы', 'Поставщик'){
     // форма редактирования
     FORM editReception 'Приход'
-        OBJECTS o = Reception PANEL
-        PROPERTIES (o) number, date, organizationName, name, quantity, price
-        EDIT Reception OBJECT o
+        OBJECTS h = HeaderReception PANEL // редактирование заголовка
+        PROPERTIES (h) number, date, organizationName
+        OBJECTS r = Reception // редактирование строк
+        PROPERTIES (r) name, quantity, price
+        PROPERTIES (r) NEW, DELETE
+        EDIT HeaderReception OBJECT h
+        FILTERS header(r) = h
     ;
+    // подправляем заголовок свойства для разных форм редактирования
+    DESIGN editReception { PROPERTY (organizationName(h)) {caption = 'Поставщик';} }
     // форма отображения
     FORM viewReception 'Приходы'
-        OBJECTS o = Reception
-        PROPERTIES (o) READONLY number, date, organizationName, name, quantity, price, userName, userDate
-        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
-        ORDERS date(o), number(o)
+        OBJECTS h = HeaderReception LAST
+        PROPERTIES (h) READONLY number, date, organizationName, userName, userDate
+        PROPERTIES (h) NEWSESSION NEW, EDIT, DELETE
+        OBJECTS r = Reception
+        PROPERTIES (r) READONLY name, quantity, price
+        FILTERS header(r) = h
+        ORDERS date(h), number(h)
     ;
-    // дизайн формы    
-    DESIGN editReception {
-        OBJECTS {
-            NEW cntDoc {
-                horizontal = TRUE; // распределяем элементы слева-направо-сверху-вниз
-                caption = 'Накладная';
-                height = 100;
-                MOVE PROPERTY (number(o));
-                MOVE PROPERTY (date(o));
-            }
-            NEW cntOrg {
-                horizontal = TRUE;
-                caption = 'Поставщик';
-                height = 100;
-                MOVE PROPERTY (organizationName(o)) { caption = 'Фирма'; }
-            }
-            NEW cntRow {
-                horizontal = FALSE ;
-                caption = 'Строки накладной';
-                MOVE PROPERTY (name(o));
-                MOVE PROPERTY (quantity(o));
-                MOVE PROPERTY (price(o));
-            }
-        }
-    }
+    // панель кнопок редактирования шапки передвигаем в панель редактирования строк
+    DESIGN viewReception { TOOLBARRIGHT (r) { MOVE TOOLBARRIGHT (h); }}
     NAVIGATOR {
         documents {
             NEW FORM viewReception;
         }
     }
 };
-
