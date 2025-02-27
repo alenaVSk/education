@@ -1,39 +1,35 @@
 MODULE Organization;
-
-REQUIRE AppMenu;
-
+REQUIRE AppMenu, RForms;
 CLASS OrganizationType 'Тип организации' {
     supplier 'Поставщик', customer 'Покупатель'
 }
-
 CLASS Organization 'Организации';
-name 'Организация' = DATA STRING[50] (Organization) NONULL ;
-
-organizationType 'ID' = DATA OrganizationType (Organization) NONULL;
-organizationTypeName 'Тип организации' (Organization o) = staticCaption(organizationType(o));
-
-FORM viewOrgaization 'Организации'
-    OBJECTS o = Organization
-    PROPERTIES (o) READONLY name, organizationTypeName
-    PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
-;
-
-FORM editOrgaization 'Организация'
-    OBJECTS o = Organization PANEL
-    PROPERTIES (o) name, organizationTypeName
-    EDIT Organization OBJECT o
-;
-
-FORM listOrgaization 'Организации'
-    OBJECTS o = Organization
-    PROPERTIES (o) READONLY name
-    LIST Organization OBJECT o
-;
-
-NAVIGATOR {
-    move {
-        NEW FOLDER directory 'Справочники' {
-            NEW FORM viewOrgaization;
+@rforms(Organization, references, 'Справочник организаций'){
+    name 'Наименование' = DATA STRING[100] (Organization) NONULL; // общее свойство
+    unique = GROUP AGGR Organization o BY upper(name(o)); // контроль уникальности
+    FORM editOrganization 'Редактирование'
+        OBJECTS o = Organization PANEL
+        PROPERTIES (o) name
+        EDIT Organization OBJECT o
+    ;
+    FORM listOrganization 'Поиск'
+        OBJECTS o = Organization
+        PROPERTIES (o) READONLY name
+        LIST Organization OBJECT o
+    ;
+    FORM viewOrganization 'Справочник организаций'
+        OBJECTS o = Organization
+        PROPERTIES (o) READONLY name
+        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
+    ;
+    NAVIGATOR {
+        references {
+            NEW FORM viewOrganization;
         }
     }
-}
+};
+organizationType 'ID' = DATA OrganizationType (Organization) NONULL;
+organizationTypeName 'Тип организации' (Organization o) = staticCaption(organizationType(o));
+EXTEND FORM editOrganization PROPERTIES (o) organizationTypeName;
+EXTEND FORM viewOrganization PROPERTIES (o) READONLY organizationTypeName;
+EXTEND FORM listOrganization PROPERTIES (o) READONLY organizationTypeName;

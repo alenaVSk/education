@@ -1,0 +1,39 @@
+MODULE Group;
+
+REQUIRE RForms;
+CLASS Group 'Товарные группы';
+@rforms(Group, products, 'Справочник товарных групп'){
+    name 'Наименование' = DATA STRING[100] (Group) NONULL; // общее свойство
+    unique = GROUP AGGR Group o BY upper(name(o)); // контроль уникальности
+    FORM editGroup 'Редактирование'
+        OBJECTS o = Group PANEL
+        PROPERTIES (o) name
+        EDIT Group OBJECT o
+    ;
+    FORM listGroup 'Поиск'
+        OBJECTS o = Group
+        PROPERTIES (o) READONLY name
+        LIST Group OBJECT o
+    ;
+    FORM viewGroup 'Справочник товарных групп'
+        OBJECTS o = Group
+        PROPERTIES (o) READONLY name
+        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
+    ;
+    NAVIGATOR {
+        products {
+            NEW FORM viewGroup;
+        }
+    }
+};
+parent = DATA Group (Group);
+nameParent 'Родительская группа' (Group g) = name(parent(g));
+level 'Уровень' (Group child, Group parent) =
+    RECURSION 1l IF child IS Group AND parent = child STEP 2l
+        IF parent = parent($parent) MATERIALIZED;
+canonicalName 'Каноническое имя' (Group group) = GROUP CONCAT name(Group parent),
+    ' / ' ORDER DESC level(group, parent) CHARWIDTH 100;
+EXTEND FORM editGroup PROPERTIES (o) nameParent;
+EXTEND FORM listGroup PROPERTIES (o) READONLY nameParent;
+EXTEND FORM viewGroup PROPERTIES (o) READONLY nameParent, canonicalName ORDERS
+canonicalName(o);

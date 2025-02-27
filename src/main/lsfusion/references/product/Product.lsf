@@ -1,0 +1,33 @@
+MODULE Product;
+
+REQUIRE RForms, Group;
+CLASS Product 'Товары';
+@rforms(Product, products, 'Справочник товаров'){
+    name 'Наименование' = DATA STRING[100] (Product) NONULL; // общее свойство
+    unique = GROUP AGGR Product o BY upper(name(o)); // контроль уникальности
+    FORM editProduct 'Редактирование'
+        OBJECTS o = Product PANEL
+        PROPERTIES (o) name
+        EDIT Product OBJECT o
+    ;
+    FORM listProduct 'Поиск'
+        OBJECTS o = Product
+        PROPERTIES (o) READONLY name
+        LIST Product OBJECT o
+    ;
+    FORM viewProduct 'Справочник товаров'
+        OBJECTS o = Product
+        PROPERTIES (o) READONLY name
+        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
+    ;
+    NAVIGATOR {
+        products {
+            NEW FORM viewProduct;
+        }
+    }
+};
+group 'ID группы' = DATA Group (Product) NONULL;
+groupName 'Группа' (Product o) = name(group(o));
+EXTEND FORM editProduct PROPERTIES (o) groupName;
+EXTEND FORM viewProduct PROPERTIES (o) READONLY groupName ORDERS groupName(o), name(o);
+EXTEND FORM listProduct PROPERTIES (o) NEWSESSION NEW;

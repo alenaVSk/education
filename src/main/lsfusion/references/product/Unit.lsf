@@ -1,0 +1,28 @@
+MODULE Unit;
+
+REQUIRE RForms;
+CLASS Unit 'Единицы измерения';
+@rforms(Unit, products, 'Справочник ЕИ'){
+    name 'Наименование' = DATA STRING[100] (Unit) NONULL; // общее свойство
+    unique = GROUP AGGR Unit o BY upper(name(o)); // контроль уникальности
+    FORM editUnit 'Редактирование'
+        OBJECTS o = Unit PANEL
+        PROPERTIES (o) name
+        EDIT Unit OBJECT o
+    ;
+    FORM listUnit 'Поиск'
+        OBJECTS o = Unit
+        PROPERTIES (o) READONLY name
+        LIST Unit OBJECT o
+    ;
+    FORM viewUnit 'Справочник ЕИ'
+        OBJECTS o = Unit
+        PROPERTIES (o) READONLY name
+        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
+    ;
+    NAVIGATOR {
+        products {
+            NEW FORM viewUnit;
+        }
+    }
+};

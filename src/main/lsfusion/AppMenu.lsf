@@ -3,7 +3,9 @@ MODULE AppMenu;
 NAVIGATOR {
     NEW FOLDER move 'Движение' WINDOW toolbar FIRST {
         NEW FOLDER documents 'Документы движения';
-        NEW FOLDER references 'Справочники';
+        NEW FOLDER references 'Справочники' {
+            NEW FOLDER products 'Товары';
+        }
     }
 }
 

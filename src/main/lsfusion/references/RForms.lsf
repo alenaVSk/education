@@ -1,0 +1,29 @@
+MODULE RForms;
+
+REQUIRE Utils, AppMenu;
+
+// объект, пункт меню, заголовок
+META rforms(object, menu, title)
+    name 'Наименование' = DATA STRING[100] (object) NONULL; // общее свойство
+    unique = GROUP AGGR object o BY upper(name(o)); // контроль уникальности
+    FORM edit##object 'Редактирование'
+        OBJECTS o = object PANEL
+        PROPERTIES (o) name
+        EDIT object OBJECT o
+    ;
+    FORM list##object 'Поиск'
+        OBJECTS o = object
+        PROPERTIES (o) READONLY name
+        LIST object OBJECT o
+    ;
+    FORM view##object title
+        OBJECTS o = object
+        PROPERTIES (o) READONLY name
+        PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE
+    ;
+    NAVIGATOR {
+        menu {
+            NEW FORM view##object;
+        }
+    }
+END
