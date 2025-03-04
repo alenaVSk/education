@@ -1,7 +1,9 @@
 MODULE Group;
 
 REQUIRE RForms;
+
 CLASS Group 'Товарные группы';
+
 @rforms(Group, products, 'Справочник товарных групп'){
     name 'Наименование' = DATA STRING[100] (Group) NONULL; // общее свойство
     unique = GROUP AGGR Group o BY upper(name(o)); // контроль уникальности

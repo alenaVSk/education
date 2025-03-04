@@ -8,7 +8,6 @@ CLASS HeaderReception 'Приходы':Header;
 // 3. Наследуем класс строки прихода от класса Row
 CLASS Reception 'Строки приходов':Row;
 // 4. Добавляем свойства, которых нет в базовом классе
-name 'Наименование' = DATA STRING[100] (Reception) NONULL;
 price 'Цена' = DATA NUMERIC[10,2] (Reception) NONULL;
 // 4. Композиция
 supplier = DATA Organization (HeaderReception);
@@ -30,7 +29,8 @@ CONSTRAINT SETCHANGED(supplier(HeaderReception o)) AND
         OBJECTS h = HeaderReception PANEL // редактирование заголовка
         PROPERTIES (h) number, date, organizationName
         OBJECTS r = Reception // редактирование строк
-        PROPERTIES (r) name, nameProduct, nameUnit, quantity, price
+        
+        PROPERTIES (r) nameProduct, nameUnit, quantity, price
         PROPERTIES (r) NEW, DELETE
         EDIT HeaderReception OBJECT h
         FILTERS header(r) = h
@@ -43,7 +43,7 @@ CONSTRAINT SETCHANGED(supplier(HeaderReception o)) AND
         PROPERTIES (h) READONLY number, date, organizationName, userName, userDate
         PROPERTIES (h) NEWSESSION NEW, EDIT, DELETE
         OBJECTS r = Reception
-        PROPERTIES (r) READONLY name, nameProduct, nameUnit, quantity, price
+        PROPERTIES (r) READONLY nameProduct, nameUnit, quantity, price
         FILTERS header(r) = h
         ORDERS date(h), number(h)
     ;

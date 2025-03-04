@@ -10,7 +10,6 @@ CLASS Expenses 'Строки расходов':Row;
 // 4. Добавляем свойства, которых нет в базовом классе
 // так как товар и цена берутся из прихода, то нужна композиция
 reception 'ID' = DATA Reception (Expenses) NONULL ;
-name 'Наименование' (Expenses o) = name(reception(o));
 price 'Цена' (Expenses o) = round(1.1 * price(reception(o)),2); // 1.1 - оптовая надбавка
 // 4. Композиция
 customer = DATA Organization (HeaderExpenses);
@@ -33,7 +32,8 @@ CONSTRAINT SETCHANGED(customer(HeaderExpenses o)) AND NOT organizationType(custo
         OBJECTS h = HeaderExpenses PANEL // редактирование заголовка
         PROPERTIES (h) number, date, organizationName
         OBJECTS r = Expenses // редактирование строк
-        PROPERTIES (r) name, nameProduct, nameUnit, quantity, price
+        
+        PROPERTIES (r) nameProduct, nameUnit, quantity, price
         PROPERTIES (r) NEW, DELETE
         EDIT HeaderExpenses OBJECT h
         FILTERS header(r) = h
@@ -46,7 +46,7 @@ CONSTRAINT SETCHANGED(customer(HeaderExpenses o)) AND NOT organizationType(custo
         PROPERTIES (h) READONLY number, date, organizationName, userName, userDate
         PROPERTIES (h) NEWSESSION NEW, EDIT, DELETE
         OBJECTS r = Expenses
-        PROPERTIES (r) READONLY name, nameProduct, nameUnit, quantity, price
+        PROPERTIES (r) READONLY nameProduct, nameUnit, quantity, price
         FILTERS header(r) = h
         ORDERS date(h), number(h)
     ;
@@ -65,7 +65,7 @@ CONSTRAINT SETCHANGED(customer(HeaderExpenses o)) AND NOT organizationType(custo
 // 6. форма выбора остатков
 FORM listReception 'Остатки'
     OBJECTS r = Reception
-    PROPERTIES (r) READONLY name, nameProduct, nameUnit, price, quantity, balance
+    PROPERTIES (r) READONLY nameProduct, nameUnit, price, quantity, balance
     LIST Reception OBJECT r
     FILTERS balance(r)
 ;

@@ -1,3 +1,45 @@
 MODULE Main;
+/*
+REQUIRE Reception, Utils;
+migrate 'Перенос данных' () {
+    ASK 'Вы действительно хотите выполнить Перенос данных?' DO {
+        FOR [GROUP MAX Reception r BY trim(getWord(name(r), '*', 2))](STRING[100] v) NEW u =
+        Unit DO {
+            name(u) <- v;
+        }
+        FOR [GROUP MAX Reception r BY getWord(name(r), '*', 1)](STRING[100] v) NEW p = Product
+            DO {
+            name(p) <- v;
+        }
+        group(Product p) <- (
+            CASE
+                WHEN istartsWith(name(p), 'Булочка') THEN Group.unique('БУЛОЧКИ')
+                WHEN istartsWith(name(p), 'Мясо') THEN Group.unique('ПОЛУФАБРИКАТЫ')
+                WHEN istartsWith(name(p), 'Из мяса') THEN Group.unique('ПРОДУКТЫ ИЗ МЯСА')
+                WHEN istartsWith(name(p), 'Колбаса') THEN Group.unique('КОЛБАСЫ')
+                ELSE OVERRIDE (GROUP MAX Group g IF istartsWith(name(p), name(g))),
+                Group.unique('ВСЕ')
+            ) WHERE p IS Product AND NOT group(p);
+        APPLY;
+        unit(Reception r) <- Unit.unique(upper(trim(getWord(name(r), '*', 2)))) WHERE r IS
+        Reception AND NOT unit(r);
+        product(Reception r) <- Product.unique(upper(getWord(name(r), '*', 1))) WHERE r IS
+        Reception AND NOT product(r);
+        APPLY;
+        IF NOT canceled() THEN
+            MESSAGE 'Операция выполнена';
+        ELSE
+            MESSAGE 'Операция не выполнена\nИз-за существующих ограничений\nВозможно, миграция
+выполняется повторно';
+    } ELSE {
+        MESSAGE 'Выполнение отменено';
+    }
+}
+EXTEND FORM migrationData PROPERTIES migrate();
+DESIGN migrationData {
+    commons {
+        MOVE PROPERTY(migrate());
+    }
+}
 
-
+*/

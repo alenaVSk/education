@@ -32,7 +32,8 @@ META forms(object, title1, title2, title3)
         OBJECTS h = Header##object PANEL // редактирование заголовка
         PROPERTIES (h) number, date, organizationName
         OBJECTS r = object // редактирование строк
-        PROPERTIES (r) name, nameProduct, nameUnit, quantity, price
+        
+        PROPERTIES (r) nameProduct, nameUnit, quantity, price
         PROPERTIES (r) NEW, DELETE
         EDIT Header##object OBJECT h
         FILTERS header(r) = h
@@ -45,7 +46,7 @@ META forms(object, title1, title2, title3)
         PROPERTIES (h) READONLY number, date, organizationName, userName, userDate
         PROPERTIES (h) NEWSESSION NEW, EDIT, DELETE
         OBJECTS r = object
-        PROPERTIES (r) READONLY name, nameProduct, nameUnit, quantity, price
+        PROPERTIES (r) READONLY nameProduct, nameUnit, quantity, price
         FILTERS header(r) = h
         ORDERS date(h), number(h)
     ;
