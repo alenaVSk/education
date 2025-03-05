@@ -28,3 +28,35 @@ NAVIGATOR {
         NEW FORM viewBalance;
     }
 }
+
+nameGroup 'Группа' (Reception o) = name(group(product(o)));
+organization 'ID организации' (Reception o) = supplier(header(o));
+EXTEND FORM viewBalance
+    OBJECTS o = Organization
+    PROPERTIES (o) READONLY name
+    OBJECTS r2 = Reception
+    PROPERTIES (r2) READONLY nameProduct, nameUnit, nameGroup, price, date, quantity,
+        allExpenses, balance
+    FILTERS organizationType(o) = OrganizationType.supplier
+    FILTERS organization(r2) = o
+;
+DESIGN viewBalance {
+    pane { caption = 'Группы'; }
+    OBJECTS {
+        NEW tabbed {
+            tabbed = TRUE; // Задает вкладки
+            fill = 1;
+            MOVE pane; // перемещаем контейнер дерева и остатков
+            NEW pane2 { // контейнер организаций и остатков
+                horizontal = TRUE;
+                caption = 'Поставщики';
+                MOVE BOX(o) { fill=1; caption='Поставщики'; }
+                MOVE BOX(r2) { fill=20; caption='Остатки'; }
+            }
+        }
+    }
+    PROPERTY (nameUnit(r2)) { charWidth=10; }
+    PROPERTY (quantity(r2)) { caption='Приход'; charWidth=10; }
+    PROPERTY (allExpenses(r2)) { caption = 'Расход'; charWidth=10; }
+    PROPERTY (balance(r2)) { charWidth=10; }
+}
