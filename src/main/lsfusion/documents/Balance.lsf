@@ -1,0 +1,30 @@
+MODULE Balance;
+
+REQUIRE Expenses, Group, AppMenu;
+date 'Дата прихода' (Reception o) = date(header(o)) CHARWIDTH 10;
+FORM viewBalance 'Журнал остатков'
+    TREE groups g = Group PARENT parent(g)
+    PROPERTIES READONLY name(g)
+    OBJECTS r = Reception
+    PROPERTIES (r) READONLY nameProduct, nameUnit, price, date, quantity, allExpenses, balance
+    FILTERS level(group(product(r)),g)
+;
+DESIGN viewBalance {
+    OBJECTS {
+        NEW pane {
+            fill = 1;
+            horizontal = TRUE ;
+            MOVE BOX(TREE groups) { fill=1; caption='Группы'; }
+            MOVE BOX(r) { fill=20; caption='Остатки'; }
+        }
+    }
+    PROPERTY (nameUnit(r)) { charWidth=10; }
+    PROPERTY (quantity(r)) { caption='Приход'; charWidth=10; }
+    PROPERTY (allExpenses(r)) { caption = 'Расход'; charWidth=10; }
+    PROPERTY (balance(r)) { charWidth=10; }
+}
+NAVIGATOR {
+    documents {
+        NEW FORM viewBalance;
+    }
+}
