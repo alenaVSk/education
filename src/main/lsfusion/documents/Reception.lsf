@@ -103,3 +103,61 @@ CONSTRAINT SETCHANGED(supplier(HeaderReception o)) AND
     }
 };
 
+// Пользовательские фильтры
+@filters(Reception, supplier, 'Поставщик'){
+    fReceptionNumber
+    'Номер' = DATA LOCAL STRING[10];
+    fReceptionDate
+    'Дата' = DATA LOCAL DATE;
+    fReceptionAmount
+    'Сумма' = DATA LOCAL INTEGER; // суммы без копеек
+    supplier 'ID организации' = DATA LOCAL Organization ();
+    fsupplierName 'Поставщик' = name(supplier());
+    
+    CONSTRAINT SETCHANGED(supplier()) AND NOT organizationType(supplier()) =
+        OrganizationType.supplier
+        CHECKED BY supplier[] MESSAGE 'Ограничение на тип организации';
+    
+    onReceptionClear 'Очистить' () {
+        fReceptionNumber() <- NULL;
+        fReceptionDate() <- NULL;
+        fReceptionAmount() <- NULL;
+        supplier() <- NULL;
+    }
+    EXTEND FORM viewReception
+        PROPERTIES() onReceptionClear, fReceptionNumber,
+            fReceptionDate, fReceptionAmount, fsupplierName
+        FILTERS NOT fReceptionNumber() OR number(h) = fReceptionNumber(),
+            NOT fReceptionDate() OR date(h) = fReceptionDate(),
+            NOT fReceptionAmount() OR floor(amount(h)) = fReceptionAmount(),
+            NOT fsupplierName() OR organizationName(h) = fsupplierName()
+    ;
+
+    DESIGN viewReception {
+        PANEL {
+            NEW allPane {
+                horizontal = FALSE ;
+                tabbed = TRUE;
+                MOVE pane {caption = 'Итоги';}
+                NEW filters {
+                    caption = 'Фиксированные фильтры';
+                    horizontal = TRUE;
+                    MOVE PROPERTY (onReceptionClear()) {background= RGB(204, 204, 255);};
+                    MOVE PROPERTY (fReceptionNumber());
+                    MOVE PROPERTY (fReceptionDate());
+                    MOVE PROPERTY (fsupplierName());
+                    MOVE PROPERTY (fReceptionAmount());
+                }
+            }
+        }
+    }
+    // ФИЛЬТР по отмеченным
+    EXTEND FORM viewReception PROPERTIES(h) mark FIRST;
+    AFTER onReceptionClear() DO mark(HeaderReception o) <- NULL;
+
+    // Группа фильтров
+    EXTEND FORM viewReception FILTERGROUP group FILTER 'Отмеченные' mark(h);
+    EXTEND FORM viewReception EXTEND FILTERGROUP group FILTER 'Больше 300 руб.' amount(h) > 300;
+    DESIGN viewReception { filters { MOVE FILTERGROUP (group) LAST; } }
+};
+

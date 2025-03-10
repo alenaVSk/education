@@ -26,6 +26,9 @@ header 'ID шапки' = DATA Header (Row) NONULL DELETE;
 // контроль данных
 CONSTRAINT quantity(Row o) > 1000 OR quantity(o) <= 0 MESSAGE 'Недопустимое количество';
 
+// ДОРАБОТКА: отметка записи
+mark 'Отметка' = DATA LOCAL BOOLEAN (Header) CHARWIDTH 8;
+
 META forms(object, title1, title2, title3)
     // форма редактирования
     FORM edit##object title1
@@ -104,3 +107,60 @@ META totalValues(object)
         }
     }
 END;
+
+META filters(object1, object2, title1)
+    f##object1##Number
+    'Номер' = DATA LOCAL STRING[10];
+    f##object1##Date
+    'Дата' = DATA LOCAL DATE;
+    f##object1##Amount
+    'Сумма' = DATA LOCAL INTEGER; // суммы без копеек
+    object2 'ID организации' = DATA LOCAL Organization ();
+    f##object2##Name title1 = name(object2());
+    
+    CONSTRAINT SETCHANGED(object2()) AND NOT organizationType(object2()) =
+        OrganizationType.object2
+        CHECKED BY object2[] MESSAGE 'Ограничение на тип организации';
+    
+    on##object1##Clear 'Очистить' () {
+        f##object1##Number() <- NULL;
+        f##object1##Date() <- NULL;
+        f##object1##Amount() <- NULL;
+        object2() <- NULL;
+    }
+    EXTEND FORM view##object1
+        PROPERTIES() on##object1##Clear, f##object1##Number,
+            f##object1##Date, f##object1##Amount, f##object2##Name
+        FILTERS NOT f##object1##Number() OR number(h) = f##object1##Number(),
+            NOT f##object1##Date() OR date(h) = f##object1##Date(),
+            NOT f##object1##Amount() OR floor(amount(h)) = f##object1##Amount(),
+            NOT f##object2##Name() OR organizationName(h) = f##object2##Name()
+    ;
+
+    DESIGN view##object1 {
+        PANEL {
+            NEW allPane {
+                horizontal = FALSE ;
+                tabbed = TRUE;
+                MOVE pane {caption = 'Итоги';}
+                NEW filters {
+                    caption = 'Фиксированные фильтры';
+                    horizontal = TRUE;
+                    MOVE PROPERTY (on##object1##Clear()) {background= RGB(204, 204, 255);};
+                    MOVE PROPERTY (f##object1##Number());
+                    MOVE PROPERTY (f##object1##Date());
+                    MOVE PROPERTY (f##object2##Name());
+                    MOVE PROPERTY (f##object1##Amount());
+                }
+            }
+        }
+    }
+    // ФИЛЬТР по отмеченным
+    EXTEND FORM view##object1 PROPERTIES(h) mark FIRST;
+    AFTER on##object1##Clear() DO mark(Header##object1 o) <- NULL;
+
+    // Группа фильтров
+    EXTEND FORM view##object1 FILTERGROUP group FILTER 'Отмеченные' mark(h);
+    EXTEND FORM view##object1 EXTEND FILTERGROUP group FILTER 'Больше 300 руб.' amount(h) > 300;
+    DESIGN view##object1 { filters { MOVE FILTERGROUP (group) LAST; } }
+END

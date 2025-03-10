@@ -139,3 +139,74 @@ DESIGN viewExpenses {
         AFTER PROPERTY (amountDay(h2)) { background= RGB(204, 255, 204); }
     }
 }
+
+// Пользовательские фильтры
+@filters(Expenses, customer, 'Покупатель'){
+    fExpensesNumber
+    'Номер' = DATA LOCAL STRING[10];
+    fExpensesDate
+    'Дата' = DATA LOCAL DATE;
+    fExpensesAmount
+    'Сумма' = DATA LOCAL INTEGER; // суммы без копеек
+    customer 'ID организации' = DATA LOCAL Organization ();
+    fcustomerName 'Покупатель' = name(customer());
+    
+    CONSTRAINT SETCHANGED(customer()) AND NOT organizationType(customer()) =
+        OrganizationType.customer
+        CHECKED BY customer[] MESSAGE 'Ограничение на тип организации';
+    
+    onExpensesClear 'Очистить' () {
+        fExpensesNumber() <- NULL;
+        fExpensesDate() <- NULL;
+        fExpensesAmount() <- NULL;
+        customer() <- NULL;
+    }
+    EXTEND FORM viewExpenses
+        PROPERTIES() onExpensesClear, fExpensesNumber,
+            fExpensesDate, fExpensesAmount, fcustomerName
+        FILTERS NOT fExpensesNumber() OR number(h) = fExpensesNumber(),
+            NOT fExpensesDate() OR date(h) = fExpensesDate(),
+            NOT fExpensesAmount() OR floor(amount(h)) = fExpensesAmount(),
+            NOT fcustomerName() OR organizationName(h) = fcustomerName()
+    ;
+
+    DESIGN viewExpenses {
+        PANEL {
+            NEW allPane {
+                horizontal = FALSE ;
+                tabbed = TRUE;
+                MOVE pane {caption = 'Итоги';}
+                NEW filters {
+                    caption = 'Фиксированные фильтры';
+                    horizontal = TRUE;
+                    MOVE PROPERTY (onExpensesClear()) {background= RGB(204, 204, 255);};
+                    MOVE PROPERTY (fExpensesNumber());
+                    MOVE PROPERTY (fExpensesDate());
+                    MOVE PROPERTY (fcustomerName());
+                    MOVE PROPERTY (fExpensesAmount());
+                }
+            }
+        }
+    }
+    // ФИЛЬТР по отмеченным
+    EXTEND FORM viewExpenses PROPERTIES(h) mark FIRST;
+    AFTER onExpensesClear() DO mark(HeaderExpenses o) <- NULL;
+
+    // Группа фильтров
+    EXTEND FORM viewExpenses FILTERGROUP group FILTER 'Отмеченные' mark(h);
+    EXTEND FORM viewExpenses EXTEND FILTERGROUP group FILTER 'Больше 300 руб.' amount(h) > 300;
+    DESIGN viewExpenses { filters { MOVE FILTERGROUP (group) LAST; } }
+};
+
+// ДОРАБОТКА: фильтр сумма со скидкой
+fAmountDiscount 'Сумма со скидкой' = DATA LOCAL INTEGER;
+AFTER onExpensesClear() DO { fAmountDiscount() <- NULL; }
+EXTEND FORM viewExpenses
+    PROPERTIES fAmountDiscount()
+    FILTERS NOT fAmountDiscount() OR floor(amountDiscount(h)) = fAmountDiscount();
+DESIGN viewExpenses {
+    REMOVE PROPERTY (fExpensesAmount());
+    filters {
+        MOVE PROPERTY (fAmountDiscount());
+    }
+}
