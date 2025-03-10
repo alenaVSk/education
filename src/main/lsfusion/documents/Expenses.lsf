@@ -71,3 +71,47 @@ FORM listReception 'Остатки'
 ;
 // ограничиваем ширину колонки ед. изм.
 DESIGN listReception {PROPERTY (nameUnit(r)) {charWidth=10;} }
+
+// Расчет итогов
+@totalValues(Expenses){
+    index 'Nпп' (Expenses r) = PARTITION SUM 1 ORDER r BY header(r) CHARWIDTH 3;
+    cost 'Стоимость' (Expenses r) = NUMERIC[10,2](round(quantity(r) * price(r),2)); // по строке
+    amount 'Сумма' (HeaderExpenses h) = GROUP SUM cost(Expenses r) IF header(r) = h;
+    count 'Количество' (HeaderExpenses h) = GROUP SUM quantity(Expenses r) IF header(r) = h;
+    cntpos 'Всего позиций' (HeaderExpenses h) = GROUP SUM 1 IF header(Expenses r) = h;
+    amountDay 'Сумма' (HeaderExpenses h) = PARTITION SUM(amount(h)) BY date(h);
+    
+    // форма отображения
+    EXTEND FORM viewExpenses
+        PROPERTIES (h) READONLY amount AFTER organizationName(h)
+        PROPERTIES (r) READONLY index FIRST, cost
+        OBJECTS h2 = HeaderExpenses PANEL // информационное табло
+        PROPERTIES(h2) READONLY amount, count, cntpos, amountDay, date
+        FILTERS h2 = h;
+    // исправляем дизайн: итоги по документу, итоги за день
+    DESIGN viewExpenses {
+        PANEL {
+            NEW pane {
+                horizontal = TRUE;
+                fill = 1;
+                NEW totalCurrent {
+                    horizontal = TRUE;
+                    caption = 'Итоги по документу';
+                    MOVE PROPERTY (amount(h2)) { background = RGB(204, 204, 255); }
+                    MOVE PROPERTY (count(h2)) { background = RGB(204, 204, 255); }
+                    MOVE PROPERTY (cntpos(h2)) { background = RGB(204, 204, 255); }
+                }
+                NEW totalDay {
+                    horizontal = TRUE;
+                    caption = 'Итоги за день';
+                    MOVE PROPERTY (date(h2)) { background = RGB(204, 255, 204); }
+                    MOVE PROPERTY (amountDay(h2)) {
+                        background = RGB(204, 255, 204);
+                        marginLeft = 20;
+                    }
+                }
+            }
+        }
+    }
+};
+

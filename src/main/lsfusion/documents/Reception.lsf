@@ -59,3 +59,47 @@ CONSTRAINT SETCHANGED(supplier(HeaderReception o)) AND
         }
     }
 };
+
+// Расчет итогов
+@totalValues(Reception){
+    index 'Nпп' (Reception r) = PARTITION SUM 1 ORDER r BY header(r) CHARWIDTH 3;
+    cost 'Стоимость' (Reception r) = NUMERIC[10,2](round(quantity(r) * price(r),2)); // по строке
+    amount 'Сумма' (HeaderReception h) = GROUP SUM cost(Reception r) IF header(r) = h;
+    count 'Количество' (HeaderReception h) = GROUP SUM quantity(Reception r) IF header(r) = h;
+    cntpos 'Всего позиций' (HeaderReception h) = GROUP SUM 1 IF header(Reception r) = h;
+    amountDay 'Сумма' (HeaderReception h) = PARTITION SUM(amount(h)) BY date(h);
+    
+    // форма отображения
+    EXTEND FORM viewReception
+        PROPERTIES (h) READONLY amount AFTER organizationName(h)
+        PROPERTIES (r) READONLY index FIRST, cost
+        OBJECTS h2 = HeaderReception PANEL // информационное табло
+        PROPERTIES(h2) READONLY amount, count, cntpos, amountDay, date
+        FILTERS h2 = h;
+    // исправляем дизайн: итоги по документу, итоги за день
+    DESIGN viewReception {
+        PANEL {
+            NEW pane {
+                horizontal = TRUE;
+                fill = 1;
+                NEW totalCurrent {
+                    horizontal = TRUE;
+                    caption = 'Итоги по документу';
+                    MOVE PROPERTY (amount(h2)) { background = RGB(204, 204, 255); }
+                    MOVE PROPERTY (count(h2)) { background = RGB(204, 204, 255); }
+                    MOVE PROPERTY (cntpos(h2)) { background = RGB(204, 204, 255); }
+                }
+                NEW totalDay {
+                    horizontal = TRUE;
+                    caption = 'Итоги за день';
+                    MOVE PROPERTY (date(h2)) { background = RGB(204, 255, 204); }
+                    MOVE PROPERTY (amountDay(h2)) {
+                        background = RGB(204, 255, 204);
+                        marginLeft = 20;
+                    }
+                }
+            }
+        }
+    }
+};
+

@@ -61,6 +61,46 @@ META forms(object, title1, title2, title3)
             NEW FORM view##object;
         }
     }
-END
+END;
 
-
+META totalValues(object)
+    index 'Nпп' (object r) = PARTITION SUM 1 ORDER r BY header(r) CHARWIDTH 3;
+    cost 'Стоимость' (object r) = NUMERIC[10,2](round(quantity(r) * price(r),2)); // по строке
+    amount 'Сумма' (Header##object h) = GROUP SUM cost(object r) IF header(r) = h;
+    count 'Количество' (Header##object h) = GROUP SUM quantity(object r) IF header(r) = h;
+    cntpos 'Всего позиций' (Header##object h) = GROUP SUM 1 IF header(object r) = h;
+    amountDay 'Сумма' (Header##object h) = PARTITION SUM(amount(h)) BY date(h);
+    
+    // форма отображения
+    EXTEND FORM view##object
+        PROPERTIES (h) READONLY amount AFTER organizationName(h)
+        PROPERTIES (r) READONLY index FIRST, cost
+        OBJECTS h2 = Header##object PANEL // информационное табло
+        PROPERTIES(h2) READONLY amount, count, cntpos, amountDay, date
+        FILTERS h2 = h;
+    // исправляем дизайн: итоги по документу, итоги за день
+    DESIGN view##object {
+        PANEL {
+            NEW pane {
+                horizontal = TRUE;
+                fill = 1;
+                NEW totalCurrent {
+                    horizontal = TRUE;
+                    caption = 'Итоги по документу';
+                    MOVE PROPERTY (amount(h2)) { background = RGB(204, 204, 255); }
+                    MOVE PROPERTY (count(h2)) { background = RGB(204, 204, 255); }
+                    MOVE PROPERTY (cntpos(h2)) { background = RGB(204, 204, 255); }
+                }
+                NEW totalDay {
+                    horizontal = TRUE;
+                    caption = 'Итоги за день';
+                    MOVE PROPERTY (date(h2)) { background = RGB(204, 255, 204); }
+                    MOVE PROPERTY (amountDay(h2)) {
+                        background = RGB(204, 255, 204);
+                        marginLeft = 20;
+                    }
+                }
+            }
+        }
+    }
+END;
