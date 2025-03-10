@@ -115,3 +115,27 @@ DESIGN listReception {PROPERTY (nameUnit(r)) {charWidth=10;} }
     }
 };
 
+// Расчет итогов со скидкой
+costDiscount 'Стоимость со скидкой' (Expenses o) =
+    round(cost(o) (-) (discount(customer(header(o)))/100) * cost(o),2);
+amountDiscount 'Сумма со скидкой' (HeaderExpenses h) =
+    GROUP SUM costDiscount(Expenses r) BY header(r);
+amountDiscountDay 'Сумма со скидкой' (HeaderExpenses h) =
+    PARTITION SUM(amountDiscount(h)) BY date(h);
+EXTEND FORM viewExpenses
+    PROPERTIES (h) READONLY amountDiscount AFTER amount(h)
+    BACKGROUND RGB(255, 255, 204) IF discount(customer(h))
+    PROPERTIES (h2) READONLY amountDiscount, amountDiscountDay
+    PROPERTIES (r) costDiscount
+;
+
+DESIGN viewExpenses {
+    totalCurrent {
+        MOVE PROPERTY (amountDiscount(h2))
+        AFTER PROPERTY (amount(h2)) { background = RGB(204, 204, 255); }
+    }
+    totalDay {
+        MOVE PROPERTY (amountDiscountDay(h2))
+        AFTER PROPERTY (amountDay(h2)) { background= RGB(204, 255, 204); }
+    }
+}

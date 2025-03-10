@@ -33,3 +33,10 @@ organizationTypeName 'Тип организации' (Organization o) = staticCa
 EXTEND FORM editOrganization PROPERTIES (o) organizationTypeName;
 EXTEND FORM viewOrganization PROPERTIES (o) READONLY organizationTypeName;
 EXTEND FORM listOrganization PROPERTIES (o) READONLY organizationTypeName;
+
+// доработка под скидку
+discount 'Скидка' = DATA NUMERIC[6,2] (Organization);
+CONSTRAINT discount(Organization o) > 5
+    MESSAGE 'Недопустимый размер скидки\nРазмер скидки не более 5%';
+EXTEND FORM editOrganization PROPERTIES (o) discount;
+EXTEND FORM viewOrganization PROPERTIES (o) READONLY discount;
