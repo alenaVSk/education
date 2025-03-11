@@ -23,13 +23,15 @@ CONSTRAINT SETCHANGED(supplier(HeaderReception o)) AND
     CHECKED BY supplier[HeaderReception]
     MESSAGE 'Для приходной накладной организация должна быть поставщиком';
 // 6. Формы редактирования и отображения, дизайн, 7. меню
-@forms(Reception, 'Приход', 'Приходы', 'Поставщик'){
+@forms(Reception, supplier, 'Приход', 'Приходы', 'Поставщик'){
     // форма редактирования
     FORM editReception 'Приход'
         OBJECTS h = HeaderReception PANEL // редактирование заголовка
-        PROPERTIES (h) number, date, organizationName
+        PROPERTIES (h) number, date
+        PROPERTIES (h) organizationName ON CHANGE {
+            DIALOG listOrganization OBJECTS o = supplier(h) CHANGE DO supplier(h) <- o;
+        }
         OBJECTS r = Reception // редактирование строк
-        
         PROPERTIES (r) nameProduct, nameUnit, quantity, price
         PROPERTIES (r) NEW, DELETE
         EDIT HeaderReception OBJECT h

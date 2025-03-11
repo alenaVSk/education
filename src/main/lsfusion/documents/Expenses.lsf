@@ -26,13 +26,15 @@ CONSTRAINT SETCHANGED(customer(HeaderExpenses o)) AND NOT organizationType(custo
     CHECKED BY customer[HeaderExpenses] MESSAGE 'Для расходной накладной организация должна быть
 покупателем';
 // 6. Формы редактирования и отображения, дизайн, 7. меню
-@forms(Expenses, 'Расход', 'Расходы', 'Покупатель'){
+@forms(Expenses, customer, 'Расход', 'Расходы', 'Покупатель'){
     // форма редактирования
     FORM editExpenses 'Расход'
         OBJECTS h = HeaderExpenses PANEL // редактирование заголовка
-        PROPERTIES (h) number, date, organizationName
+        PROPERTIES (h) number, date
+        PROPERTIES (h) organizationName ON CHANGE {
+            DIALOG listOrganization OBJECTS o = customer(h) CHANGE DO customer(h) <- o;
+        }
         OBJECTS r = Expenses // редактирование строк
-        
         PROPERTIES (r) nameProduct, nameUnit, quantity, price
         PROPERTIES (r) NEW, DELETE
         EDIT HeaderExpenses OBJECT h

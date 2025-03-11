@@ -40,3 +40,8 @@ CONSTRAINT discount(Organization o) > 5
     MESSAGE 'Недопустимый размер скидки\nРазмер скидки не более 5%';
 EXTEND FORM editOrganization PROPERTIES (o) discount;
 EXTEND FORM viewOrganization PROPERTIES (o) READONLY discount;
+
+// отображение discount по условию
+EXTEND FORM listOrganization
+    PROPERTIES (o) READONLY discount SHOWIF organizationType(o) = OrganizationType.customer
+;
